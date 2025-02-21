@@ -11,7 +11,7 @@ def load_data():
     try:
         with open("data.json", "r") as f:
             return json.load(f)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         return {"streak": 0, "last_entry": None}
 
 # Save User Data
@@ -19,14 +19,16 @@ def save_data(data):
     with open("data.json", "w") as f:
         json.dump(data, f)
 
-# Get Motivational Quote from API
+# Get Motivational Quote from API with SSL handling
 def get_quote():
-    url = "https://api.quotable.io/random"
-    response = requests.get(url)
-    if response.status_code == 200:
+    url = "https://api.quotable.io/random"  # Example API for quotes
+    try:
+        response = requests.get(url, verify=False, timeout=10)  # Disable SSL verification
+        response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)
         data = response.json()
         return f"💭 _{data['content']}_ – {data['author']}"
-    return "💡 _Believe in yourself. Every challenge is an opportunity!_ – Anonymous"
+    except requests.exceptions.RequestException as e:
+        return f"⚠️ Unable to fetch quote: {e}"
 
 # Update Streak
 def update_streak(user_data):
@@ -49,11 +51,11 @@ st.header("💡 Welcome to Your Journey of Growth!")
 st.write("Every challenge is an opportunity. This AI-powered app helps you **embrace struggles, reflect on progress, and celebrate victories!** 🌟")
 
 # Display Quote
-st.header("📢 Today's Power Quote")
+st.header("💬 Today's Power Quote")
 st.write(get_quote())
 
 # User Challenge Input
-st.header("🛑 What’s Holding You Back Today?")
+st.header("🚑 What’s Holding You Back Today?")
 user_input = st.text_input("💭 Describe a challenge you're currently facing:")
 if user_input:
     user_data["challenge"] = user_input
